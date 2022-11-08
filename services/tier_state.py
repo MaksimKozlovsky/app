@@ -12,5 +12,6 @@ class ChangeUsernameState(StatesGroup):
     user_id = State()
 
 
-class ChangeEventState(StatesGroup):
-    event_id = State()
+class EventState(StatesGroup):
+    event = State()
+    ticket = State()

@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 from app.services.event_playground import event_service
-from app.services.tier_state import UserState, ChangeUsernameState, ChangeEventState
+from app.services.tier_state import UserState, ChangeUsernameState, EventState
 from aiogram.types import ReplyKeyboardRemove, \
     ReplyKeyboardMarkup, KeyboardButton, \
     InlineKeyboardMarkup, InlineKeyboardButton
 
-from app.utils.json_to_text import convert_to_text
+from app.utils.json_to_text import convert_to_text, convert_to_text_ticket
 
 load_dotenv()
 
@@ -34,7 +34,7 @@ async def startup(_):
 async def get_admin_commands(msg: types.Message):
     inline_kb = types.InlineKeyboardMarkup(row_width=1)
     inline_kb.add(types.InlineKeyboardButton("Get users", callback_data="get_users_1"))
-    inline_kb.add(types.InlineKeyboardButton("Add event", callback_data="add_event"))
+    inline_kb.add(types.InlineKeyboardButton("Get events", callback_data="get_events_1"))
     await msg.reply("Choose admin action", reply_markup=inline_kb)
 
 
@@ -150,5 +150,70 @@ async def change_password(msg: types.Message, state: FSMContext):
     await msg.delete()
     await state.finish()
 
+# # ------------------------------ EVENTS ----------------------------------------------------------------------------
+
+
+@dp.callback_query_handler(Text(contains="get_events"))
+async def display_events(callback: types.CallbackQuery):
+    page = int(callback.data.split("_")[-1])
+    events_response = event_service.get_events(page)
+
+    inline_kb = types.InlineKeyboardMarkup(row_width=1)
+
+    for event in events_response["results"]:
+        inline_kb.add(
+            types.InlineKeyboardButton(f"id: {event['id']}.\n"
+                                       f"Название: {event['title']}.\n"
+                                       f"Дата: {event['date']}",
+                                       callback_data=f"get_event:{event['id']}")
+        )
+
+    pagination_buttons = []
+
+    if events_response["previous"]:
+        pagination_buttons.append(types.InlineKeyboardButton("previous", callback_data=f"get_events_{page - 1}"))
+    if events_response["next"]:
+        pagination_buttons.append(types.InlineKeyboardButton("next", callback_data=f"get_events_{page + 1}"))
+
+    await callback.message.edit_text("Edited", reply_markup=inline_kb.row(*pagination_buttons))
+
+
+@dp.callback_query_handler(Text(contains="get_event"))
+async def display_event(callback: types.CallbackQuery, state: FSMContext):
+    event_id = int(callback.data.split(":")[-1])
+    event = event_service.get_event(event_id)
+
+    await state.set_state(EventState.event.state)
+    await state.update_data(event, msg_id=callback.message.message_id)
+
+    inline_kb = types.InlineKeyboardMarkup(row_width=1)
+    inline_kb.add(types.InlineKeyboardButton("Change ticket count", callback_data="change_ticket_count"))
+    inline_kb.add(types.InlineKeyboardButton("Change date", callback_data="change_date"))
+
+    msg_text = convert_to_text(event)
+
+    await callback.message.edit_text(msg_text, reply_markup=inline_kb)
+    await callback.answer("Event fetched")
+
+
+@dp.callback_query_handler(Text(equals="change_ticket_count"), state=EventState.event)
+async def ticket_change_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(EventState.ticket.state)
+    msg = await callback.message.answer("Type new ticket count")
+    await state.update_data(msg_to_delete=msg.message_id, msg_id=callback.message.message_id)
+
+
+@dp.message_handler(state=EventState.ticket)
+async def change_ticket_count(msg: types.Message, state: FSMContext):
+    ticket_count = msg.text.strip()
+    data = await state.get_data()
+    ticket = event_service.update_ticket_count(data["id"], {"ticket_count": ticket_count})
+    msg_text = convert_to_text_ticket(ticket)
+    await bot.edit_message_text(msg_text, msg.chat.id, data["msg_id"])
+    await bot.delete_message(msg.chat.id, data["msg_to_delete"])
+    await msg.delete()
+    await state.finish()
+
+# # ------------------ END EVENTS -------------------------------------------------------------------------------------
 
 executor.start_polling(dp, skip_updates=True, on_startup=startup)

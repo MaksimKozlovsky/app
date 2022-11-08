@@ -35,5 +35,23 @@ class EventPlaygroundService:
         response.raise_for_status()
         return response.json()
 
+# # --------------------- EVENTS -------------------------------------------------------------------------------------
+
+    def get_events(self, page=1):
+        params = dict(limit=self.limit, offset=(page - 1) * self.limit)
+        response = requests.get(f"{self.base_url}all_events/", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def get_event(self, event_id: int) -> None:
+        response = requests.get(f"{self.base_url}all_events/{event_id}/")
+        response.raise_for_status()
+        return response.json()
+
+    def update_ticket_count(self, event_id: int, ticket_data: dict) -> dict:
+        response = requests.patch(f"{self.base_url}all_events/{event_id}/", json=ticket_data)
+        response.raise_for_status()
+        return response.json()
+
 
 event_service = EventPlaygroundService()
