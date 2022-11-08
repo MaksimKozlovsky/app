@@ -1,8 +1,11 @@
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 
-class ChangeTierState(StatesGroup):
-    user_id = State()
+class UserState(StatesGroup):
+    user = State()
+    tier = State()
+    username = State()
+    password = State()
 
 
 class ChangeUsernameState(StatesGroup):
