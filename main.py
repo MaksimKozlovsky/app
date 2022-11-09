@@ -12,7 +12,7 @@ from aiogram.types import ReplyKeyboardRemove, \
     ReplyKeyboardMarkup, KeyboardButton, \
     InlineKeyboardMarkup, InlineKeyboardButton
 
-from app.utils.json_to_text import convert_to_text, convert_to_text_ticket
+from app.utils.json_to_text import convert_to_text, convert_to_text_ticket, convert_to_text_date
 
 load_dotenv()
 
@@ -38,6 +38,13 @@ async def get_admin_commands(msg: types.Message):
     await msg.reply("Choose admin action", reply_markup=inline_kb)
 
 
+@dp.callback_query_handler(Text(contains="return"), state="*")
+async def return_handler(callback: types.CallbackQuery, state: FSMContext):
+    await get_admin_commands(callback.message)
+    await state.finish()
+    await callback.answer("Return pressed")
+
+
 @dp.callback_query_handler(Text(contains="get_users"))
 async def display_users(callback: types.CallbackQuery):
     page = int(callback.data.split("_")[-1])
@@ -57,7 +64,9 @@ async def display_users(callback: types.CallbackQuery):
     if users_response["next"]:
         pagination_buttons.append(types.InlineKeyboardButton("➡️", callback_data=f"get_users_{page + 1}"))
 
-    await callback.message.edit_text("Edited", reply_markup=inline_kb.row(*pagination_buttons))
+    inline_kb.row(*pagination_buttons).row(types.InlineKeyboardButton("Return", callback_data="return"))
+
+    await callback.message.edit_text("Edited", reply_markup=inline_kb)
     await callback.answer("Users fetched")
 
 
@@ -73,6 +82,7 @@ async def display_user(callback: types.CallbackQuery, state: FSMContext):
     inline_kb.add(types.InlineKeyboardButton("Change tier", callback_data="change_tier"))
     inline_kb.add(types.InlineKeyboardButton("Change username", callback_data="change_username"))
     inline_kb.add(types.InlineKeyboardButton("Change password", callback_data="change_password"))
+    inline_kb.add(types.InlineKeyboardButton("Return", callback_data="return"))
 
     msg_text = convert_to_text(user)
 
@@ -175,7 +185,10 @@ async def display_events(callback: types.CallbackQuery):
     if events_response["next"]:
         pagination_buttons.append(types.InlineKeyboardButton("next", callback_data=f"get_events_{page + 1}"))
 
-    await callback.message.edit_text("Edited", reply_markup=inline_kb.row(*pagination_buttons))
+    inline_kb.row(*pagination_buttons).row(types.InlineKeyboardButton("Return", callback_data="return"))
+
+    await callback.message.edit_text("Edited", reply_markup=inline_kb)
+    await callback.answer("Users fetched")
 
 
 @dp.callback_query_handler(Text(contains="get_event"))
@@ -189,6 +202,7 @@ async def display_event(callback: types.CallbackQuery, state: FSMContext):
     inline_kb = types.InlineKeyboardMarkup(row_width=1)
     inline_kb.add(types.InlineKeyboardButton("Change ticket count", callback_data="change_ticket_count"))
     inline_kb.add(types.InlineKeyboardButton("Change date", callback_data="change_date"))
+    inline_kb.add(types.InlineKeyboardButton("Return", callback_data="return"))
 
     msg_text = convert_to_text(event)
 
@@ -213,6 +227,26 @@ async def change_ticket_count(msg: types.Message, state: FSMContext):
     await bot.delete_message(msg.chat.id, data["msg_to_delete"])
     await msg.delete()
     await state.finish()
+
+
+@dp.callback_query_handler(Text(equals="change_date"), state=EventState.event)
+async def date_change_callback(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(EventState.date_st.state)
+    msg = await callback.message.answer("Type new Date")
+    await state.update_data(msg_to_delete=msg.message_id, msg_id=callback.message.message_id)
+
+
+@dp.message_handler(state=EventState.date_st)
+async def change_date(msg: types.Message, state: FSMContext):
+    date_s = msg.text.strip()
+    data = await state.get_data()
+    ticket = event_service.update_date(data["id"], {"date": date_s})
+    msg_text = convert_to_text_date(ticket)
+    await bot.edit_message_text(msg_text, msg.chat.id, data["msg_id"])
+    await bot.delete_message(msg.chat.id, data["msg_to_delete"])
+    await msg.delete()
+    await state.finish()
+
 
 # # ------------------ END EVENTS -------------------------------------------------------------------------------------
 

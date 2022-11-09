@@ -53,5 +53,10 @@ class EventPlaygroundService:
         response.raise_for_status()
         return response.json()
 
+    def update_date(self, event_id: int, date_d: dict) -> dict:
+        response = requests.patch(f"{self.base_url}all_events/{event_id}/", json=date_d)
+        response.raise_for_status()
+        return response.json()
+
 
 event_service = EventPlaygroundService()

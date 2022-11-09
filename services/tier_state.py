@@ -15,3 +15,5 @@ class ChangeUsernameState(StatesGroup):
 class EventState(StatesGroup):
     event = State()
     ticket = State()
+    date_st = State()
+

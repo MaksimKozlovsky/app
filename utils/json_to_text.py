@@ -12,3 +12,12 @@ def convert_to_text_ticket(json_data: dict) -> str:
         ticket_html += f"{field.capitalize()}: {value}\n"
 
     return ticket_html
+
+
+def convert_to_text_date(json_data: dict) -> str:
+    date_html = ""
+    for field, value in json_data.items():
+        date_html += f"{field.capitalize()}: {value}\n"
+
+    return date_html
+
