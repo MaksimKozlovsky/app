@@ -1,16 +1,19 @@
 import logging
 import os
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+import aiogram.utils.markdown as md
 import requests
 from aiogram import Bot, Dispatcher, executor, types
+import json
 from dotenv import load_dotenv
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher import FSMContext
 from app.services.event_playground import event_service
+from app.event_txt import new_event_txt
 from app.services.tier_state import UserState, ChangeUsernameState, EventState
 from aiogram.types import ReplyKeyboardRemove, \
     ReplyKeyboardMarkup, KeyboardButton, \
-    InlineKeyboardMarkup, InlineKeyboardButton
+    InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 
 from app.utils.json_to_text import convert_to_text, convert_to_text_ticket, convert_to_text_date
 
@@ -185,7 +188,8 @@ async def display_events(callback: types.CallbackQuery):
     if events_response["next"]:
         pagination_buttons.append(types.InlineKeyboardButton("next", callback_data=f"get_events_{page + 1}"))
 
-    inline_kb.row(*pagination_buttons).row(types.InlineKeyboardButton("Return", callback_data="return"))
+    inline_kb.row(*pagination_buttons).row(types.InlineKeyboardButton("Add event", callback_data="add_event")
+                                           ).add(types.InlineKeyboardButton("Return", callback_data="return"))
 
     await callback.message.edit_text("Edited", reply_markup=inline_kb)
     await callback.answer("Users fetched")
@@ -247,6 +251,26 @@ async def change_date(msg: types.Message, state: FSMContext):
     await msg.delete()
     await state.finish()
 
+# --------------------------------------------------------------------------------------------------------------------
+
+
+@dp.callback_query_handler(Text(equals="add_event"), state=EventState.event)
+async def new_event_call(callback: types.CallbackQuery, state: FSMContext):
+    str_json = json.dumps(new_event_txt)
+
+    with open('new_event.json', 'w') as mf:
+        data = mf.write(str_json)
+    # ar =[]
+    # with open('new_event.txt', 'r') as r:
+    #     for itm in r:
+    #         if itm:
+    #             ar.append(itm)
+    #
+    # with open('new_event.json', 'w') as ar:
+    #     data = json.dumps(ar)
+    # event = event_service.add_new_event(data)
+    await state.update_data(event)
+    print(data)
 
 # # ------------------ END EVENTS -------------------------------------------------------------------------------------
 

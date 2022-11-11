@@ -58,5 +58,10 @@ class EventPlaygroundService:
         response.raise_for_status()
         return response.json()
 
+    def add_new_event(self):
+        response = requests.post(f"{self.base_url}all_events/")
+        response.raise_for_status()
+        return response.json()
+
 
 event_service = EventPlaygroundService()

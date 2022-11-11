@@ -12,12 +12,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
-
 API_TOKEN = os.getenv('BOT_TOKEN')
-
-
 bot = Bot(token=API_TOKEN)
-
 # For example use simple MemoryStorage for Dispatcher.
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
@@ -125,6 +121,93 @@ async def process_gender(message: types.Message, state: FSMContext):
 
     # Finish conversation
     await state.finish()
+
+# # ---------------
+#
+# @dp.callback_query_handler(Text(equals="add_event"))
+# async def cmd_start(callback: types.CallbackQuery, state: FSMContext):
+#     """
+#     Conversation's entry point
+#     """
+#     # Set state
+#     await Form.name.set()
+#
+#     await callback.message.reply("Enter events title")
+#
+#
+# # You can use state '*' if you need to handle all states
+# @dp.message_handler(state='*', commands='cancel')
+# @dp.message_handler(Text(equals='cancel', ignore_case=True), state='*')
+# async def cancel_handler(message: types.Message, state: FSMContext):
+#     """
+#     Allow user to cancel any action
+#     """
+#     current_state = await state.get_state()
+#     if current_state is None:
+#         return
+#
+#     logging.info('Cancelling state %r', current_state)
+#     # Cancel state and inform user about it
+#     await state.finish()
+#     # And remove keyboard (just in case)
+#     await message.reply('Cancelled.', reply_markup=types.ReplyKeyboardRemove())
+#
+#
+# @dp.message_handler(state=Form.name)
+# async def process_name(message: types.Message, state: FSMContext):
+#     """
+#     Process username
+#     """
+#     async with state.proxy() as data:
+#         data['title'] = message.text
+#
+#     await Form.next()
+#     await message.reply("Enter events date?")
+#
+#
+# # Check age. Age gotta be digit
+# @dp.message_handler(lambda message: not message.text.isdigit(), state=Form.age)
+# async def process_age_invalid(message: types.Message):
+#     """
+#     If age is invalid
+#     """
+#     return await message.reply("Age gotta be a number.\nHow old are you? (digits only)")
+#
+#
+# @dp.message_handler(lambda message: message.text.isdigit(), state=Form.age)
+# async def process_age(message: types.Message, state: FSMContext):
+#     # Update state and data
+#     await Form.next()
+#     await state.update_data(date=int(message.text))
+#
+#     await message.reply("Enter events description")
+#
+#
+# @dp.message_handler(state=Form.gender)
+# async def process_gender(message: types.Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         data['description'] = message.text
+#
+#         # Remove keyboard
+#         markup = types.ReplyKeyboardRemove()
+#
+#         # And send message
+#         await bot.send_message(
+#             message.chat.id,
+#             md.text(
+#                 md.text('Event title: ', md.bold(data['title'])),
+#                 md.text('Event date: ', md.code(data['date'])),
+#                 md.text('Event description:', data['description']),
+#                 sep='\n',
+#             ),
+#             reply_markup=markup,
+#             parse_mode=ParseMode.MARKDOWN,
+#         )
+#
+#     # Finish conversation
+#     await state.finish()
+#
+# # -------------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':

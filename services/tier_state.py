@@ -16,4 +16,10 @@ class EventState(StatesGroup):
     event = State()
     ticket = State()
     date_st = State()
+    n_event = State()
 
+
+# class Form(StatesGroup):
+#     name = State()  # Will be represented in storage as 'Form:name'
+#     age = State()  # Will be represented in storage as 'Form:age'
+#     gender = State()  # Will be represented in storage as 'Form:gender'

@@ -1,0 +1,8 @@
+new_event_txt = {
+    "title": "title",
+    "description": "description"
+    "date": null,
+    "ticket_count": "100",
+    "organizer": "1",
+    "sponsors": ["1"]
+}
